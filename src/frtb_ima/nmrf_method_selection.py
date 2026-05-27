@@ -6,10 +6,10 @@ RFET and before valuation to decide what an upstream risk engine must produce
 for each Type A or Type B NMRF.
 
 Regulatory traceability:
-    U.S. NPR 2.0 SES working assumptions require NMRF stress methodologies to
-    address nonlinearity, basis, and other material risks. The method-selection
-    rules here are prototype governance logic; they do not replace model
-    approval or pricing-model validation.
+    Basel MAR33 NMRF stress-scenario capital; U.S. NPR 2.0 SES methodology for
+    Type A / Type B NMRFs; EU CRR Article 325bk stress scenario risk measure.
+    The method-selection rules here are prototype governance logic; they do not
+    replace model approval or pricing-model validation.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ class NMRFMethodReason(StrEnum):
     DIRECT_STABLE_AND_WELL_DEFINED = "DIRECT_STABLE_AND_WELL_DEFINED"
     DIRECT_FAILED_NONLINEARITY_TEST = "DIRECT_FAILED_NONLINEARITY_TEST"
     STEPWISE_REQUIRED_FOR_GRID_SEARCH = "STEPWISE_REQUIRED_FOR_GRID_SEARCH"
+    STEPWISE_ONLY_AVAILABLE_METHOD = "STEPWISE_ONLY_AVAILABLE_METHOD"
     FULL_REVALUATION_AVAILABLE = "FULL_REVALUATION_AVAILABLE"
     NO_ACCEPTABLE_SCENARIO_REQUIRES_MAX_LOSS = (
         "NO_ACCEPTABLE_SCENARIO_REQUIRES_MAX_LOSS"
@@ -264,7 +265,7 @@ def select_nmrf_method(
             modellability_status=selection_input.modellability_status,
             liquidity_horizon=selection_input.liquidity_horizon,
             method=NMRFStressMethod.STEPWISE,
-            reason=NMRFMethodReason.STEPWISE_REQUIRED_FOR_GRID_SEARCH,
+            reason=NMRFMethodReason.STEPWISE_ONLY_AVAILABLE_METHOD,
             source=selection_input.source,
             notes=selection_input.notes,
         )

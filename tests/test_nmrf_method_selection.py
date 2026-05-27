@@ -79,6 +79,16 @@ def test_selector_chooses_stepwise_when_grid_search_is_required() -> None:
     assert decision.reason == NMRFMethodReason.STEPWISE_REQUIRED_FOR_GRID_SEARCH
 
 
+def test_selector_chooses_stepwise_as_only_available_method() -> None:
+    decision = select_nmrf_method(
+        _base_input(stepwise_available=True),
+        get_policy(),
+    )
+
+    assert decision.method == NMRFStressMethod.STEPWISE
+    assert decision.reason == NMRFMethodReason.STEPWISE_ONLY_AVAILABLE_METHOD
+
+
 def test_selector_uses_max_loss_fallback_only_when_allowed() -> None:
     decision = select_nmrf_method(
         _base_input(max_loss_fallback_allowed=True),
