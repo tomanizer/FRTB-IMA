@@ -3,6 +3,7 @@
 import json
 from datetime import date
 from pathlib import Path
+from types import MappingProxyType
 
 import pytest
 
@@ -64,6 +65,28 @@ def test_capital_run_audit_log_rejects_duplicate_desks() -> None:
             regime="FED_NPR_2_0",
             desk_records=(_desk_record("desk-1"), _desk_record("desk-1")),
         )
+
+
+def test_audit_metadata_defaults_are_immutable_mappings() -> None:
+    record = DeskAuditRecord(
+        run_id="run-1",
+        desk_id="desk-1",
+        regime="FED_NPR_2_0",
+        imcc={},
+        ses={},
+        pla={},
+        backtesting={},
+        capital={},
+        elapsed_seconds=0.0,
+    )
+    log = CapitalRunAuditLog(
+        run_id="run-1",
+        regime="FED_NPR_2_0",
+        desk_records=(record,),
+    )
+
+    assert isinstance(record.metadata, MappingProxyType)
+    assert isinstance(log.metadata, MappingProxyType)
 
 
 def test_write_audit_records_ndjson(tmp_path: Path) -> None:

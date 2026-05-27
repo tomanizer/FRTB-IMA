@@ -17,10 +17,9 @@ import json
 import logging as py_logging
 import sys
 from collections.abc import Mapping
-from datetime import date, datetime
-from enum import Enum
-from types import TracebackType
-from typing import Any, TextIO
+from typing import TextIO
+
+from frtb_ima.audit import _jsonable
 
 _STANDARD_LOG_RECORD_ATTRIBUTES = frozenset(
     py_logging.LogRecord(
@@ -104,23 +103,3 @@ def configure_json_logging(
     logger.addHandler(handler)
     logger.setLevel(level)
     return handler
-
-
-def _jsonable(value: Any) -> object:
-    if isinstance(value, Enum):
-        return value.value
-    if isinstance(value, datetime | date):
-        return value.isoformat()
-    if isinstance(value, Mapping):
-        return {str(key): _jsonable(item) for key, item in value.items()}
-    if isinstance(value, tuple | list):
-        return [_jsonable(item) for item in value]
-    if isinstance(value, BaseException):
-        return repr(value)
-    if isinstance(value, TracebackType):
-        return repr(value)
-    try:
-        json.dumps(value)
-    except TypeError:
-        return str(value)
-    return value

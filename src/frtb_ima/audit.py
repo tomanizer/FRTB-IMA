@@ -19,8 +19,12 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
-from types import MappingProxyType
+from types import MappingProxyType, TracebackType
 from typing import Any
+
+
+def _empty_mapping() -> Mapping[str, object]:
+    return MappingProxyType({})
 
 
 @dataclass(frozen=True)
@@ -38,7 +42,7 @@ class DeskAuditRecord:
     elapsed_seconds: float
     as_of_date: date | None = None
     notes: tuple[str, ...] = ()
-    metadata: Mapping[str, object] = field(default_factory=dict)
+    metadata: Mapping[str, object] = field(default_factory=_empty_mapping)
 
     def __post_init__(self) -> None:
         if not self.run_id:
@@ -89,7 +93,7 @@ class CapitalRunAuditLog:
     regime: str
     desk_records: tuple[DeskAuditRecord, ...]
     as_of_date: date | None = None
-    metadata: Mapping[str, object] = field(default_factory=dict)
+    metadata: Mapping[str, object] = field(default_factory=_empty_mapping)
 
     def __post_init__(self) -> None:
         if not self.run_id:
@@ -166,6 +170,10 @@ def _jsonable(value: Any) -> object:
         return {str(key): _jsonable(item) for key, item in value.items()}
     if isinstance(value, tuple | list):
         return [_jsonable(item) for item in value]
+    if isinstance(value, BaseException):
+        return repr(value)
+    if isinstance(value, TracebackType):
+        return repr(value)
     try:
         json.dumps(value)
     except TypeError:
