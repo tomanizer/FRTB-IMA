@@ -189,6 +189,22 @@ def test_stress_period_specs_for_nmrf_bridge_uses_selected_windows() -> None:
 
 
 def test_historical_stress_series_rejects_invalid_inputs() -> None:
+    with pytest.raises(ValueError, match="non-empty"):
+        HistoricalStressSeries(
+            risk_class=RiskClass.CSR,
+            losses=[],
+            dates=(),
+            source="synthetic",
+        )
+
+    with pytest.raises(ValueError, match="dates must be non-empty"):
+        HistoricalStressSeries(
+            risk_class=RiskClass.CSR,
+            losses=[1.0],
+            dates=(),
+            source="synthetic",
+        )
+
     with pytest.raises(ValueError, match="finite"):
         HistoricalStressSeries(
             risk_class=RiskClass.CSR,

@@ -8,6 +8,9 @@ shocks, price trades, or approve regulatory calibration.
 The selection result is a cross-cutting governance input: it directly supplies
 NMRF valuation stress-period specs and can inform upstream IMCC stressed-ES
 scenario preparation, while ``imcc.py`` itself still consumes numeric ES inputs.
+Window length is observation-count based. The Fed default is a 250-observation
+business-day proxy; callers are responsible for supplying business-day-aligned
+histories if they need a 12-month business-calendar interpretation.
 
 Sign convention: input historical values are positive = loss.
 
@@ -638,8 +641,6 @@ def _select_window_index(
 ) -> int:
     max_score = float(np.max(scores))
     tied = np.flatnonzero(scores == max_score)
-    if tied.size == 0:
-        raise StressPeriodCalibrationError("no stress-period candidates found")
     if tie_break == StressPeriodTieBreak.EARLIEST_START_DATE:
         return int(tied[0])
     if tie_break == StressPeriodTieBreak.LATEST_START_DATE:
