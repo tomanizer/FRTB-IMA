@@ -15,10 +15,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "jupyter>=1.1",
+    "matplotlib>=3.8",
+    "mypy>=1.10",
+    "nbmake>=1.5",
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "ruff>=0.4",
-    "mypy>=1.10",
 ]
 
 [tool.setuptools.packages.find]
