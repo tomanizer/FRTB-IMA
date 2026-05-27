@@ -10,7 +10,7 @@ venv:
 	$(PIP) install --upgrade pip
 
 install: venv
-	$(PIP) install -e ".[dev]"
+	$(PIP) install -e ".[dev,notebooks]"
 
 test:
 	$(PYTHON_BIN) -m pytest
