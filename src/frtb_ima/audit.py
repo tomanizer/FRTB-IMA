@@ -161,8 +161,8 @@ def render_capital_run_audit_report(
     lines: list[str] = [
         f"# {title}",
         "",
-        "> Prototype report only. Not for regulatory reporting. NPR 2.0 values are "
-        "proposed-rule working assumptions.",
+        "> Prototype report only. Not for regulatory reporting.",
+        "> NPR 2.0 values are proposed-rule working assumptions.",
         "",
         "## Run summary",
         "",

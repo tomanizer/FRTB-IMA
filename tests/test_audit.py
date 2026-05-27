@@ -119,6 +119,7 @@ def test_render_capital_run_audit_report_contains_summary_and_details() -> None:
     assert "### NMRF valuation" in report
     assert '"artifact_count": 2' in report
     assert "Prototype report only. Not for regulatory reporting." in report
+    assert "> NPR 2.0 values are proposed-rule working assumptions." in report
 
 
 def test_write_capital_run_audit_report(tmp_path: Path) -> None:
