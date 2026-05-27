@@ -231,9 +231,7 @@ class NMRFArtifactReconciliationResult:
         """Number of returned artifacts in the reconciled valuation batch."""
         if self.returned_artifact_count is not None:
             return self.returned_artifact_count
-        return sum(item.artifact_count for item in self.items) + len(
-            self.unexpected_artifacts
-        )
+        return sum(item.artifact_count for item in self.items) + self.unexpected_count
 
     @property
     def missing_count(self) -> int:

@@ -18,6 +18,8 @@ from frtb_ima.nmrf_stress_spec import (
     NMRFValuationSpec,
 )
 from frtb_ima.nmrf_valuation_run import (
+    NMRFArtifactReconciliationItem,
+    NMRFArtifactReconciliationResult,
     NMRFValuationRunError,
     build_nmrf_valuation_run_request,
     calculate_nmrf_capital_from_valuation_run,
@@ -200,6 +202,26 @@ def test_reconciliation_reports_missing_unexpected_and_duplicate_artifacts() -> 
     assert unexpected_result.unexpected_artifacts == ("RF_UNEXPECTED",)
     assert duplicate_result.duplicate_artifacts == ("RF_DIRECT",)
     assert "duplicate_artifacts" in duplicate_result.items[0].errors
+
+
+def test_reconciliation_artifact_count_fallback_uses_unexpected_artifact_count() -> None:
+    result = NMRFArtifactReconciliationResult(
+        items=(
+            NMRFArtifactReconciliationItem(
+                risk_factor_name="RF_DIRECT",
+                required_method=NMRFStressMethod.DIRECT,
+                required_liquidity_horizon=LiquidityHorizon.LH20,
+                required_stress_period="csr-2008",
+                artifact_count=1,
+            ),
+        ),
+        unexpected_artifacts=("RF_UNEXPECTED",),
+        unexpected_artifact_count=2,
+    )
+
+    assert result.unexpected_count == 2
+    assert result.unexpected_risk_factor_count == 1
+    assert result.artifact_count == 3
 
 
 def test_reconciliation_reports_method_lh_and_stress_period_mismatches() -> None:
