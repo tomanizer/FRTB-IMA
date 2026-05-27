@@ -280,6 +280,8 @@ def select_nmrf_methods(
     policy: RegulatoryPolicy,
 ) -> tuple[NMRFMethodDecision, ...]:
     """Select stress methods for a deterministic sequence of NMRF inputs."""
+    if not selection_inputs:
+        raise ValueError("selection_inputs must be non-empty")
     return tuple(
         select_nmrf_method(selection_input, policy)
         for selection_input in selection_inputs

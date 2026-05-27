@@ -222,7 +222,9 @@ def _as_loss_array(
         raise ValueError(f"{name} must be non-empty")
     if not np.all(np.isfinite(arr)):
         raise ValueError(f"{name} must contain only finite values")
-    return arr.astype(np.float64, copy=False)
+    result = arr.astype(np.float64, copy=True)
+    result.flags.writeable = False
+    return result
 
 
 def _as_abs_ses_array(
@@ -557,8 +559,8 @@ def route_nmrf_classifications_for_capital(
         modellable_risk_factors=tuple(modellable),
         type_a_nmrf_risk_factors=tuple(type_a),
         type_b_nmrf_risk_factors=tuple(type_b),
-        imcc_risk_factors=tuple([*modellable, *type_a]),
-        ses_risk_factors=tuple([*type_a, *type_b]),
+        imcc_risk_factors=tuple(modellable + type_a),
+        ses_risk_factors=tuple(type_a + type_b),
     )
 
 

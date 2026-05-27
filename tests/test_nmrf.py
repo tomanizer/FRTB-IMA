@@ -2,6 +2,7 @@
 
 import math
 
+import numpy as np
 import pytest
 
 from frtb_ima.data_models import LiquidityHorizon, ModellabilityStatus
@@ -209,6 +210,25 @@ def test_stress_artifact_extracts_ses_from_vectorized_revaluation_losses() -> No
     assert result.ses == pytest.approx(100.0)
     assert result.method == NMRFStressMethod.FULL_REVALUATION
     assert result.generated_by_prototype is False
+
+
+def test_stress_artifact_defensively_freezes_loss_vector() -> None:
+    original_losses = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+    artifact = NMRFStressArtifact(
+        risk_factor_name="EXOTIC_RF",
+        method=NMRFStressMethod.FULL_REVALUATION,
+        losses=original_losses,
+        liquidity_horizon=LiquidityHorizon.LH120,
+        stress_period="synthetic-stress",
+        source="upstream risk engine",
+    )
+
+    original_losses[0] = 99.0
+
+    assert artifact.losses.tolist() == pytest.approx([1.0, 2.0, 3.0])
+    assert artifact.losses.flags.writeable is False
+    with pytest.raises(ValueError, match="read-only"):
+        artifact.losses[0] = 10.0
 
 
 def test_stress_artifact_ses_is_floored_at_zero_for_all_gain_vectors() -> None:

@@ -9,6 +9,7 @@ from frtb_ima.nmrf_method_selection import (
     NMRFMethodSelectionError,
     NMRFMethodSelectionInput,
     select_nmrf_method,
+    select_nmrf_methods,
 )
 from frtb_ima.regimes import RegulatoryRegime, UnsupportedRegulatoryFeature, get_policy
 
@@ -91,6 +92,11 @@ def test_selector_uses_max_loss_fallback_only_when_allowed() -> None:
 def test_selector_fails_when_no_acceptable_method_exists() -> None:
     with pytest.raises(NMRFMethodSelectionError, match="No acceptable"):
         select_nmrf_method(_base_input(), get_policy())
+
+
+def test_bulk_selector_rejects_empty_inputs() -> None:
+    with pytest.raises(ValueError, match="non-empty"):
+        select_nmrf_methods((), get_policy())
 
 
 def test_selector_rejects_modellable_inputs() -> None:
