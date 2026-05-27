@@ -109,7 +109,11 @@ def _verify_manifest_checksums(root: Path, manifest: dict[str, Any]) -> None:
         expected = metadata.get("sha256")
         if not isinstance(expected, str):
             raise AssertionError(f"manifest checksum missing for {filename}")
-        assert _sha256(root / filename) == expected
+        actual = _sha256(root / filename)
+        if actual != expected:
+            raise AssertionError(
+                f"manifest checksum mismatch for {filename}: expected {expected}, actual {actual}"
+            )
 
 
 def _sha256(path: Path) -> str:

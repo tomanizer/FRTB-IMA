@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 import numpy.testing as npt
+import pytest
 
 from frtb_ima.backtesting import trading_desk_backtest_trace_for_policy
 from frtb_ima.capital import models_based_capital, supervisory_multiplier_for_policy
@@ -46,7 +47,11 @@ from frtb_ima.stress_periods import (
     stress_period_specs_for_nmrf,
     validate_selected_stress_periods,
 )
-from tests.fixture_loader import CapitalRunFixture, load_capital_run_fixture
+from tests.fixture_loader import (
+    CapitalRunFixture,
+    _verify_manifest_checksums,
+    load_capital_run_fixture,
+)
 
 FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures" / "capital_run_v1"
 
@@ -80,6 +85,15 @@ def test_capital_run_v1_manifest_declares_sign_conventions() -> None:
     assert not fixture.scenario_cube.values.flags.writeable
     assert not fixture.nmrf_artifacts["HY_CREDIT_SPD_losses"].flags.writeable
     assert not fixture.pla_bt_vectors["apl"].flags.writeable
+
+
+def test_fixture_manifest_checksum_mismatch_has_clear_message(tmp_path: Path) -> None:
+    data_file = tmp_path / "data.txt"
+    data_file.write_text("fixture payload")
+    manifest = {"files": {"data.txt": {"sha256": "0" * 64}}}
+
+    with pytest.raises(AssertionError, match=r"manifest checksum mismatch for data\.txt"):
+        _verify_manifest_checksums(tmp_path, manifest)
 
 
 def _run_fixture_workflow(fixture: CapitalRunFixture) -> dict[str, object]:
