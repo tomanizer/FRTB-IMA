@@ -18,9 +18,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import numpy as np
+import numpy.typing as npt
 
 
-def expected_shortfall(losses: Sequence[float], alpha: float = 0.975) -> float:
+def expected_shortfall(
+    losses: Sequence[float] | npt.NDArray[np.float64],
+    alpha: float = 0.975,
+) -> float:
     """
     Compute expected shortfall (average of tail losses beyond alpha quantile).
 
