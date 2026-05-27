@@ -116,6 +116,9 @@ See [docs/REGULATORY_ASSUMPTIONS.md](docs/REGULATORY_ASSUMPTIONS.md).
 For a bidirectional code-to-regulation and regulation-to-code index, see
 [docs/REGULATORY_TRACEABILITY.md](docs/REGULATORY_TRACEABILITY.md).
 
+For machine-readable source links and section hints without vendored regulatory
+text, see [docs/regulatory_sources.yml](docs/regulatory_sources.yml).
+
 For the latest NPR 2.0 implementation audit and remaining gaps, see
 [docs/NPR_2_IMPLEMENTATION_AUDIT.md](docs/NPR_2_IMPLEMENTATION_AUDIT.md).
 

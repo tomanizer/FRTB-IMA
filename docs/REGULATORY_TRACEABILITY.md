@@ -9,6 +9,12 @@ It is intentionally a traceability map, not legal advice and not a statement of
 regulatory compliance. The project remains a transparent prototype for testing
 calculation mechanics from synthetic inputs.
 
+The companion machine-readable source manifest is
+[`docs/regulatory_sources.yml`](regulatory_sources.yml). It keeps official
+source URLs, section hints, linked modules, linked requirement IDs, source
+status, and reuse notes without vendoring the full regulatory texts into the
+package.
+
 Use it in two directions:
 
 - **Code to regulation:** start from a module and see which Basel, U.S. NPR, and
@@ -42,6 +48,8 @@ From regulation to code:
 | EU CRR / CRR3 | Regulation (EU) No 575/2013 as amended by CRR2 and CRR3, especially Articles 325ba, 325bb, 325bc, 325bd, 325be, 325bf, 325bg, and 325bk. | EU comparison framework. The code does not implement a full CRR own-funds requirement. |
 | EU RTS / EBA | Commission Delegated Regulation (EU) 2022/2059 for backtesting and P&L attribution technical details; Commission Delegated Regulation (EU) 2022/2060 for risk-factor modellability; EBA final draft RTS updates under CRR3. | Used to identify documentation gaps and EU-specific refinements, not fully implemented. |
 | UK CRR / PRA | UK CRR and PRA rulebook market-risk implementation. | Separate profile placeholder. PRA-specific deltas are not source-mapped or formally calibrated yet. |
+
+Use `docs/regulatory_sources.yml` for topic-level links and section hints.
 
 ## Primary-source links
 

@@ -103,6 +103,7 @@ Canonical audit paths return frozen dataclasses with full breakdowns: `LHAESResu
 
 ### Regulatory traceability — mandatory
 Every calculation module must include a `Regulatory traceability` block in its docstring naming the Basel anchor, U.S. NPR 2.0 anchor, and EU anchor. Update `docs/REGULATORY_TRACEABILITY.md` (Code-to-regulation and Regulation-to-code tables) for any module addition or change. Update `docs/requirements/NPR_2_0_MARKET_RISK.yml` when a requirement status changes.
+Use `docs/regulatory_sources.yml` for official source URLs and section hints. Do not vendor full regulatory text into the core package unless licensing and source authority have been explicitly reviewed.
 
 ### No drift
 Do not add abstractions, base classes, helper layers, or "convenience" wrappers that are not demanded by a specific calculation requirement. Three similar lines is preferable to a premature abstraction. If you see drift toward deep nesting or unnecessary class hierarchies, reject it.
