@@ -149,6 +149,13 @@ def test_full_revaluation_spec_requires_unique_market_states() -> None:
             calibration_source="synthetic market-state replay",
         )
 
+    with pytest.raises(TypeError, match="only strings"):
+        NMRFFullRevaluationSpec(
+            scenario_set_id="synthetic-full-reval",
+            market_state_ids=("ms-1", 1),  # type: ignore[arg-type]
+            calibration_source="synthetic market-state replay",
+        )
+
 
 def test_max_loss_fallback_spec_requires_candidate_scenarios() -> None:
     spec = build_nmrf_valuation_spec(
@@ -163,7 +170,7 @@ def test_max_loss_fallback_spec_requires_candidate_scenarios() -> None:
     )
 
     assert spec.max_loss_fallback is not None
-    assert spec.max_loss_fallback.selection_rule == "MAXIMUM_LOSS"
+    assert spec.max_loss_fallback.SELECTION_RULE == "MAXIMUM_LOSS"
 
 
 def test_bulk_spec_builder_uses_risk_class_period_and_factor_override() -> None:
@@ -229,6 +236,27 @@ def test_bulk_spec_builder_reports_missing_risk_class() -> None:
             {},
             {RiskClass.CSR: _stress_period()},
             get_policy(),
+        )
+
+
+def test_bulk_spec_builder_rejects_duplicate_instructions() -> None:
+    direct_shock = NMRFDirectShockSpec(
+        shock_size=350.0,
+        shock_unit="spread_bps",
+        direction=NMRFShockDirection.UP,
+        calibration_source="synthetic",
+    )
+
+    with pytest.raises(NMRFStressSpecError, match="duplicate instruction"):
+        build_nmrf_valuation_specs(
+            (
+                _instruction(risk_factor_name="HY_CREDIT_SPD"),
+                _instruction(risk_factor_name="HY_CREDIT_SPD"),
+            ),
+            {"HY_CREDIT_SPD": RiskClass.CSR},
+            {RiskClass.CSR: _stress_period()},
+            get_policy(),
+            direct_shocks={"HY_CREDIT_SPD": direct_shock},
         )
 
 

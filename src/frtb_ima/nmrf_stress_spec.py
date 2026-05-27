@@ -19,6 +19,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
+from typing import ClassVar
 
 import numpy as np
 import numpy.typing as npt
@@ -27,8 +28,6 @@ from frtb_ima.data_models import LiquidityHorizon, ModellabilityStatus, RiskClas
 from frtb_ima.nmrf import NMRFStressMethod
 from frtb_ima.nmrf_method_selection import NMRFValuationInstruction
 from frtb_ima.regimes import RegulatoryPolicy
-
-FloatArray = npt.NDArray[np.float64]
 
 
 class NMRFStressSpecError(ValueError):
@@ -98,7 +97,7 @@ class NMRFDirectShockSpec:
 class NMRFStepwiseShockGrid:
     """Ordered shock grid or path for stepwise NMRF valuation."""
 
-    shock_points: Sequence[float] | FloatArray
+    shock_points: Sequence[float] | npt.NDArray[np.float64]
     shock_unit: str
     calibration_source: str
     path_dependent: bool = False
@@ -147,11 +146,17 @@ class NMRFFullRevaluationSpec:
 
 @dataclass(frozen=True)
 class NMRFMaxLossFallbackSpec:
-    """Candidate scenarios for the conservative max-loss fallback path."""
+    """
+    Candidate scenarios for the conservative max-loss fallback path.
+
+    The fallback selection rule is fixed: the upstream valuation run must return
+    candidate losses and the capital layer uses the maximum loss.
+    """
+
+    SELECTION_RULE: ClassVar[str] = "MAXIMUM_LOSS"
 
     candidate_scenario_ids: Sequence[str]
     loss_source: str
-    selection_rule: str = "MAXIMUM_LOSS"
     notes: str = ""
 
     def __post_init__(self) -> None:
@@ -161,8 +166,6 @@ class NMRFMaxLossFallbackSpec:
         )
         if not self.loss_source:
             raise ValueError("loss_source must be non-empty")
-        if self.selection_rule != "MAXIMUM_LOSS":
-            raise ValueError("selection_rule must be MAXIMUM_LOSS")
         object.__setattr__(self, "candidate_scenario_ids", candidate_scenario_ids)
 
 
@@ -231,7 +234,7 @@ class NMRFValuationSpec:
 
 
 def _as_finite_tuple(
-    values: Sequence[float] | FloatArray,
+    values: Sequence[float] | npt.NDArray[np.float64],
     name: str,
 ) -> tuple[float, ...]:
     arr = np.asarray(values, dtype=float)
@@ -248,6 +251,8 @@ def _validate_non_empty_unique(values: Sequence[str], name: str) -> tuple[str, .
     result = tuple(values)
     if not result:
         raise ValueError(f"{name} must be non-empty")
+    if any(not isinstance(value, str) for value in result):
+        raise TypeError(f"{name} must contain only strings")
     if any(not value for value in result):
         raise ValueError(f"{name} cannot contain empty values")
     if len(result) != len(set(result)):
@@ -306,9 +311,16 @@ def build_nmrf_valuation_specs(
     if not instructions:
         raise ValueError("instructions must be non-empty")
 
+    seen_risk_factors: set[str] = set()
     specs: list[NMRFValuationSpec] = []
     for instruction in instructions:
         risk_factor_name = instruction.risk_factor_name
+        if risk_factor_name in seen_risk_factors:
+            raise NMRFStressSpecError(
+                f"duplicate instruction for risk factor {risk_factor_name}"
+            )
+        seen_risk_factors.add(risk_factor_name)
+
         risk_class = risk_classes.get(risk_factor_name)
         if risk_class is None:
             raise NMRFStressSpecError(f"missing risk class for {risk_factor_name}")

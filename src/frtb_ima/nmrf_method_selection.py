@@ -26,8 +26,6 @@ from frtb_ima.data_models import LiquidityHorizon, ModellabilityStatus
 from frtb_ima.nmrf import NMRFStressMethod, nmrf_effective_liquidity_horizon
 from frtb_ima.regimes import RegulatoryPolicy
 
-FloatArray = npt.NDArray[np.float64]
-
 
 class NMRFMethodSelectionError(ValueError):
     """Raised when no acceptable NMRF stress method can be selected."""
@@ -191,9 +189,9 @@ class NMRFMethodSelectionInput:
 
 
 def _as_finite_1d_array(
-    values: Sequence[float] | FloatArray,
+    values: Sequence[float] | npt.NDArray[np.float64],
     name: str,
-) -> FloatArray:
+) -> npt.NDArray[np.float64]:
     arr = np.asarray(values, dtype=float)
     if arr.ndim != 1:
         raise ValueError(f"{name} must be one-dimensional")
@@ -205,8 +203,8 @@ def _as_finite_1d_array(
 
 
 def assess_direct_loss_robustness(
-    direct_losses: Sequence[float] | FloatArray,
-    benchmark_losses: Sequence[float] | FloatArray,
+    direct_losses: Sequence[float] | npt.NDArray[np.float64],
+    benchmark_losses: Sequence[float] | npt.NDArray[np.float64],
     *,
     max_relative_error_threshold: float = 0.10,
     absolute_tolerance: float = 1e-12,
