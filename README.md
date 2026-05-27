@@ -18,6 +18,11 @@ A Python prototype demonstrating how an existing risk engine can generate 10-day
 - Backtesting exception counts at 97.5% and 99.0% VaR levels
 - Structured JSON logging and NDJSON audit records
 
+The current boundary is intentional: the package assembles and validates
+capital inputs, but it does not generate market data, select stress periods,
+price trades, run DRC/standardized capital, or produce final regulatory
+submissions.
+
 ## Install
 
 ```bash
@@ -97,6 +102,12 @@ src/frtb_ima/
 **Minimal dependencies.** numpy only. No pandas, no scipy — keeps it auditable.
 
 **Functional style.** Classes only where data structure demands it (dataclasses). Business logic is pure functions.
+
+**Audit trail without backend coupling.** Runtime observability uses stdlib
+logging and compact scalar JSON events at policy-wrapper boundaries. Durable
+desk/run audit records are serialisable NDJSON objects; object-store, database,
+Splunk, OpenTelemetry, Parquet, or DuckDB integration belongs in an external
+runner.
 
 ## Regulatory assumptions
 
