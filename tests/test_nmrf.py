@@ -246,6 +246,21 @@ def test_stress_artifact_ses_is_floored_at_zero_for_all_gain_vectors() -> None:
     assert result.ses == pytest.approx(0.0)
 
 
+def test_max_loss_fallback_artifact_uses_maximum_loss_not_tail_average() -> None:
+    artifact = NMRFStressArtifact(
+        risk_factor_name="EXOTIC_RF",
+        method=NMRFStressMethod.MAX_LOSS_FALLBACK,
+        losses=[100.0, 80.0, 60.0, *([0.0] * 97)],
+        liquidity_horizon=LiquidityHorizon.LH20,
+        stress_period="synthetic-stress",
+        source="upstream risk engine",
+    )
+
+    result = calculate_nmrf_ses_from_revaluation(artifact, get_policy())
+
+    assert result.ses == pytest.approx(100.0)
+
+
 def test_stress_artifact_rejects_short_nmrf_liquidity_horizon() -> None:
     with pytest.raises(ValueError, match="at least 20"):
         NMRFStressArtifact(
@@ -292,6 +307,24 @@ def test_route_nmrf_classifications_for_capital_keeps_type_a_in_imcc_and_ses() -
 
     assert routing.imcc_risk_factors == ("RF_MODELLABLE", "RF_TYPE_A")
     assert routing.ses_risk_factors == ("RF_TYPE_A", "RF_TYPE_B")
+
+
+def test_route_nmrf_classifications_for_capital_is_deterministically_sorted() -> None:
+    routing = route_nmrf_classifications_for_capital(
+        {
+            "Z_TYPE_B": ModellabilityStatus.TYPE_B_NMRF,
+            "M_TYPE_A": ModellabilityStatus.TYPE_A_NMRF,
+            "A_MODELLABLE": ModellabilityStatus.MODELLABLE,
+            "A_TYPE_B": ModellabilityStatus.TYPE_B_NMRF,
+        },
+        get_policy(),
+    )
+
+    assert routing.modellable_risk_factors == ("A_MODELLABLE",)
+    assert routing.type_a_nmrf_risk_factors == ("M_TYPE_A",)
+    assert routing.type_b_nmrf_risk_factors == ("A_TYPE_B", "Z_TYPE_B")
+    assert routing.imcc_risk_factors == ("A_MODELLABLE", "M_TYPE_A")
+    assert routing.ses_risk_factors == ("M_TYPE_A", "A_TYPE_B", "Z_TYPE_B")
 
 
 def test_calculate_nmrf_capital_requires_artifacts_for_all_nmrfs() -> None:
@@ -342,6 +375,42 @@ def test_calculate_nmrf_capital_validates_methods_and_liquidity_horizons() -> No
             get_policy(),
             required_liquidity_horizons={"RF_TYPE_A": LiquidityHorizon.LH40},
         )
+
+
+def test_calculate_nmrf_capital_allows_partial_required_constraint_mappings() -> None:
+    classifications = {
+        "RF_TYPE_A": ModellabilityStatus.TYPE_A_NMRF,
+        "RF_TYPE_B": ModellabilityStatus.TYPE_B_NMRF,
+    }
+    artifacts = (
+        NMRFStressArtifact(
+            risk_factor_name="RF_TYPE_A",
+            method=NMRFStressMethod.DIRECT,
+            losses=[10.0],
+            liquidity_horizon=LiquidityHorizon.LH20,
+            stress_period="synthetic-stress",
+            source="upstream risk engine",
+        ),
+        NMRFStressArtifact(
+            risk_factor_name="RF_TYPE_B",
+            method=NMRFStressMethod.STEPWISE,
+            losses=[20.0],
+            liquidity_horizon=LiquidityHorizon.LH40,
+            stress_period="synthetic-stress",
+            source="upstream risk engine",
+        ),
+    )
+
+    result = calculate_nmrf_capital_for_policy(
+        classifications,
+        artifacts,
+        get_policy(),
+        required_methods={"RF_TYPE_A": NMRFStressMethod.DIRECT},
+        required_liquidity_horizons={"RF_TYPE_B": LiquidityHorizon.LH20},
+    )
+
+    assert result.type_a_results[0].ses == pytest.approx(10.0)
+    assert result.type_b_results[0].ses == pytest.approx(20.0)
 
 
 def test_calculate_nmrf_capital_aggregates_type_a_and_type_b_artifacts() -> None:

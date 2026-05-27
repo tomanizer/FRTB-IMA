@@ -33,7 +33,8 @@ def expected_shortfall(
         alpha:  Confidence level. Default 0.975 (97.5%) per NPR 2.0.
 
     Returns:
-        ES as a positive scalar. Zero if the tail is empty.
+        ES as the mean of the non-empty worst-loss tail. The result can be
+        negative when all selected tail scenarios are gains.
 
     Raises:
         ValueError: on empty input or invalid alpha.

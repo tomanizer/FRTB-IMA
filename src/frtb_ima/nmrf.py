@@ -347,7 +347,8 @@ def calculate_nmrf_ses_from_revaluation(
 
     The vector is expected to be a post-valuation artifact, not a pricing model
     embedded in the capital layer. ES can be negative if every scenario is a
-    gain, so SES is floored at zero.
+    gain, so SES is floored at zero. ``MAX_LOSS_FALLBACK`` artifacts use the
+    maximum supplied loss instead of a tail average.
     """
     policy.require_supported("type_a_type_b_nmrf_taxonomy")
     if (
@@ -359,13 +360,16 @@ def calculate_nmrf_ses_from_revaluation(
             "allow_linear_approximation=True"
         )
 
-    ses = max(
-        0.0,
-        expected_shortfall(
-            artifact.losses,
-            alpha=policy.es_confidence_level,
-        ),
-    )
+    if artifact.method == NMRFStressMethod.MAX_LOSS_FALLBACK:
+        ses = max(0.0, float(np.max(artifact.losses)))
+    else:
+        ses = max(
+            0.0,
+            expected_shortfall(
+                artifact.losses,
+                alpha=policy.es_confidence_level,
+            ),
+        )
     return NMRFStressScenarioResult(
         risk_factor_name=artifact.risk_factor_name,
         method=artifact.method,
@@ -555,6 +559,10 @@ def route_nmrf_classifications_for_capital(
         elif status == ModellabilityStatus.TYPE_B_NMRF:
             type_b.append(risk_factor_name)
 
+    modellable = sorted(modellable)
+    type_a = sorted(type_a)
+    type_b = sorted(type_b)
+
     return NMRFCapitalRouting(
         modellable_risk_factors=tuple(modellable),
         type_a_nmrf_risk_factors=tuple(type_a),
@@ -615,28 +623,24 @@ def _validate_required_artifacts(
     if required_methods is not None:
         for risk_factor_name in routing.ses_risk_factors:
             expected_method = required_methods.get(risk_factor_name)
-            if expected_method is None:
-                raise ValueError(f"Missing required method for {risk_factor_name}")
-            actual_method = artifacts_by_name[risk_factor_name].method
-            if actual_method != expected_method:
-                raise ValueError(
-                    f"NMRF artifact method mismatch for {risk_factor_name}: "
-                    f"expected {expected_method.value}, got {actual_method.value}"
-                )
+            if expected_method is not None:
+                actual_method = artifacts_by_name[risk_factor_name].method
+                if actual_method != expected_method:
+                    raise ValueError(
+                        f"NMRF artifact method mismatch for {risk_factor_name}: "
+                        f"expected {expected_method.value}, got {actual_method.value}"
+                    )
 
     if required_liquidity_horizons is not None:
         for risk_factor_name in routing.ses_risk_factors:
             required_lh = required_liquidity_horizons.get(risk_factor_name)
-            if required_lh is None:
-                raise ValueError(
-                    f"Missing required liquidity horizon for {risk_factor_name}"
-                )
-            actual_lh = artifacts_by_name[risk_factor_name].liquidity_horizon
-            if actual_lh.value < required_lh.value:
-                raise ValueError(
-                    f"NMRF artifact liquidity horizon too short for {risk_factor_name}: "
-                    f"required at least {required_lh.value}, got {actual_lh.value}"
-                )
+            if required_lh is not None:
+                actual_lh = artifacts_by_name[risk_factor_name].liquidity_horizon
+                if actual_lh.value < required_lh.value:
+                    raise ValueError(
+                        f"NMRF artifact liquidity horizon too short for {risk_factor_name}: "
+                        f"required at least {required_lh.value}, got {actual_lh.value}"
+                    )
 
 
 def calculate_nmrf_capital_for_policy(
