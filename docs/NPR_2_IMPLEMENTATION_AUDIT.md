@@ -100,6 +100,10 @@ Corrected behavior:
 - `nmrf_stress_spec.py` converts valuation instructions into upstream
   valuation-run specifications for calibrated direct shocks, stepwise grids,
   full-revaluation market states, or max-loss candidate scenarios.
+- `nmrf_valuation_run.py` reconciles returned valuation artifacts to the
+  requested specs before capital use, checking method, liquidity horizon,
+  stress-period, scenario-count, scenario-id, and unexpected/duplicate artifact
+  mismatches.
 - `NMRFStressArtifact` records post-valuation loss vectors with method,
   liquidity horizon, stress period, source, and provenance.
 - `calculate_nmrf_ses_from_revaluation` extracts SES from vectorized upstream
@@ -137,8 +141,9 @@ new upstream data contracts:
 
 - Institutional pricing/revaluation for direct, stepwise, and full-revaluation
   NMRF stress artifacts remains upstream. This package records method evidence,
-  specifies valuation-run requirements, validates artifacts, extracts SES, and
-  aggregates capital, but it is not a pricing engine.
+  specifies valuation-run requirements, reconciles returned artifacts, validates
+  artifacts, extracts SES, and aggregates capital, but it is not a pricing
+  engine.
 - RFET qualitative checks are external inputs. Vendor/source lineage,
   data-pooling eligibility, third-party reliance, and new-issuance treatment are
   not implemented.
