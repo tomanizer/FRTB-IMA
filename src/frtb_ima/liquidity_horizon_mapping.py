@@ -99,6 +99,8 @@ FED_NPR_SPECIFIED_FX_CURRENCY_CODES: tuple[str, ...] = (
     "GBP",
 )
 
+_SPECIFIED_CURRENCY_SET = frozenset(FED_NPR_SPECIFIED_FX_CURRENCY_CODES)
+
 
 _MAPPING_TABLE: tuple[LiquidityHorizonMappingEntry, ...] = (
     LiquidityHorizonMappingEntry(
@@ -308,14 +310,14 @@ def liquidity_horizon_adjusted_for_maturity(
     Apply the short-maturity liquidity-horizon rule to an assigned category LH.
 
     When maturity is shorter than the category floor, the returned horizon is
-    the next standard 10/20/40/60/120-day horizon strictly longer than maturity.
+    the next standard 10/20/40/60/120-day horizon equal to or longer than maturity.
     """
     base_horizon = _as_liquidity_horizon(liquidity_horizon)
     if maturity_days <= 0:
         raise ValueError("maturity_days must be positive")
     if maturity_days >= base_horizon.value:
         return base_horizon
-    return _shortest_horizon_strictly_longer_than(float(maturity_days))
+    return _shortest_horizon_at_least(float(maturity_days))
 
 
 def liquidity_horizon_for_weighted_average(
@@ -364,7 +366,9 @@ def is_fed_npr_specified_fx_pair(
     quote = _normalise_currency_code(quote_currency)
     if base == quote:
         return False
-    specified = set(FED_NPR_SPECIFIED_FX_CURRENCY_CODES)
+    if not additional_currency_codes:
+        return base in _SPECIFIED_CURRENCY_SET and quote in _SPECIFIED_CURRENCY_SET
+    specified = set(_SPECIFIED_CURRENCY_SET)
     specified.update(_normalise_currency_code(item) for item in additional_currency_codes)
     return base in specified and quote in specified
 
@@ -414,14 +418,9 @@ def _shortest_horizon_at_least(days: float) -> LiquidityHorizon:
     return LiquidityHorizon.LH120
 
 
-def _shortest_horizon_strictly_longer_than(days: float) -> LiquidityHorizon:
-    for horizon in _ORDERED_HORIZONS:
-        if horizon.value > days:
-            return horizon
-    return LiquidityHorizon.LH120
-
-
 def _normalise_currency_code(currency: str) -> str:
+    if not isinstance(currency, str):
+        raise TypeError("currency code must be a string")
     code = currency.strip().upper()
     if len(code) != 3:
         raise ValueError("currency codes must be three-letter ISO-style codes")

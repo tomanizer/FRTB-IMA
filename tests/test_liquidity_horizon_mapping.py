@@ -75,8 +75,8 @@ def test_liquidity_horizon_for_category_uses_regulatory_table(
     ("base_horizon", "maturity_days", "expected"),
     [
         (LiquidityHorizon.LH60, 5, LiquidityHorizon.LH10),
-        (LiquidityHorizon.LH60, 10, LiquidityHorizon.LH20),
-        (LiquidityHorizon.LH60, 20, LiquidityHorizon.LH40),
+        (LiquidityHorizon.LH60, 10, LiquidityHorizon.LH10),
+        (LiquidityHorizon.LH60, 20, LiquidityHorizon.LH20),
         (LiquidityHorizon.LH60, 30, LiquidityHorizon.LH40),
         (LiquidityHorizon.LH60, 59, LiquidityHorizon.LH60),
         (LiquidityHorizon.LH60, 60, LiquidityHorizon.LH60),
@@ -126,6 +126,13 @@ def test_liquidity_horizon_mapping_rejects_invalid_inputs() -> None:
         liquidity_horizon_for_weighted_average((LiquidityHorizon.LH10,), weights=(1.0, 2.0))
     with pytest.raises(ValueError, match="positive total"):
         liquidity_horizon_for_weighted_average((LiquidityHorizon.LH10,), weights=(0.0,))
+
+
+def test_fx_pair_helper_rejects_invalid_currency_codes() -> None:
+    with pytest.raises(TypeError, match="currency code must be a string"):
+        is_fed_npr_specified_fx_pair(123, "USD")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="three-letter"):
+        is_fed_npr_specified_fx_pair("US", "EUR")
 
 
 def test_fed_npr_specified_fx_pair_helper() -> None:
