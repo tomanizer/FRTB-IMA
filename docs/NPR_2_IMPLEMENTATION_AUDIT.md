@@ -103,7 +103,8 @@ Corrected behavior:
 - `nmrf_valuation_run.py` reconciles returned valuation artifacts to the
   requested specs before capital use, checking method, liquidity horizon,
   stress-period, scenario-count, scenario-id, and unexpected/duplicate artifact
-  mismatches.
+  mismatches. Prototype-labelled artifacts fail reconciliation unless the caller
+  explicitly opts into synthetic/demo artifacts.
 - `NMRFStressArtifact` records post-valuation loss vectors with method,
   liquidity horizon, stress period, source, and provenance.
 - `calculate_nmrf_ses_from_revaluation` extracts SES from vectorized upstream

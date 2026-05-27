@@ -27,7 +27,7 @@ from frtb_ima.nmrf_valuation_run import (
     reconcile_nmrf_valuation_artifacts,
     require_nmrf_valuation_reconciliation_passed,
 )
-from frtb_ima.regimes import get_policy
+from frtb_ima.regimes import RegulatoryRegime, get_policy
 
 
 def _stress_period(period_id: str = "csr-2008") -> NMRFStressPeriodSpec:
@@ -116,6 +116,7 @@ def _artifact(
     stress_period: str | None = None,
     scenario_ids: tuple[str, ...] = (),
     risk_factor_name: str | None = None,
+    generated_by_prototype: bool = False,
 ) -> NMRFStressArtifact:
     return NMRFStressArtifact(
         risk_factor_name=risk_factor_name or spec.risk_factor_name,
@@ -125,6 +126,7 @@ def _artifact(
         stress_period=stress_period or spec.stress_period.stress_period_id,
         source="synthetic upstream artifact",
         scenario_ids=scenario_ids,
+        generated_by_prototype=generated_by_prototype,
     )
 
 
@@ -260,6 +262,23 @@ def test_reconciliation_reports_liquidity_horizon_too_short() -> None:
     assert "liquidity_horizon_too_short" in result.items[0].errors
 
 
+def test_reconciliation_rejects_prototype_artifacts_by_default() -> None:
+    direct = _direct_spec()
+    artifact = _artifact(direct, generated_by_prototype=True)
+
+    result = reconcile_nmrf_valuation_artifacts((direct,), (artifact,))
+    allowed_result = reconcile_nmrf_valuation_artifacts(
+        (direct,),
+        (artifact,),
+        allow_prototype_artifacts=True,
+    )
+
+    assert result.passed is False
+    assert result.items[0].generated_by_prototype is True
+    assert "prototype_artifact" in result.items[0].errors
+    assert allowed_result.passed is True
+
+
 def test_full_revaluation_reconciliation_requires_market_state_ids() -> None:
     full = _full_reval_spec()
     wrong_count = _artifact(
@@ -324,6 +343,25 @@ def test_failed_reconciliation_blocks_capital_consumption() -> None:
             {"RF_DIRECT": ModellabilityStatus.TYPE_A_NMRF},
             valuation_run,
             get_policy(),
+        )
+
+
+def test_regime_mismatch_blocks_capital_consumption() -> None:
+    direct = _direct_spec()
+    artifacts = (_artifact(direct),)
+    request = build_nmrf_valuation_run_request(
+        (direct,),
+        get_policy(),
+        run_id="run-1",
+        desk_id="desk-1",
+    )
+    valuation_run = complete_nmrf_valuation_run(request, artifacts)
+
+    with pytest.raises(NMRFValuationRunError, match="regime does not match"):
+        calculate_nmrf_capital_from_valuation_run(
+            {"RF_DIRECT": ModellabilityStatus.TYPE_A_NMRF},
+            valuation_run,
+            get_policy(RegulatoryRegime.ECB_CRR3),
         )
 
 

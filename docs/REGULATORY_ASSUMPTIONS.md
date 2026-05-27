@@ -39,7 +39,8 @@ All U.S. NPR 2.0 content is treated as proposed-rule working assumptions. The pr
     them.
 13. Missing or mismatched Type A or Type B NMRF stress artifacts are hard
     validation errors; the capital layer does not silently substitute linear
-    approximations.
+    approximations. Prototype-labelled valuation artifacts fail reconciliation
+    unless a demo/test caller explicitly opts into synthetic artifacts.
 14. PLA uses a Kolmogorov-Smirnov statistic comparing HPL and RTPL over a
     250-business-day policy window.
 15. Backtesting counts both APL and HPL exceptions at 97.5% and 99.0% VaR

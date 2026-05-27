@@ -6,6 +6,9 @@ valuation or pricing engine. It reconciles NMRF valuation specifications with
 returned stress artifacts before those artifacts are consumed by SES capital.
 It does not generate stress scenarios, select stress periods, or price trades.
 
+Sign convention: ``NMRFStressArtifact.losses`` uses positive values for losses
+and negative values for gains, matching ``nmrf.py``.
+
 Regulatory traceability:
     Basel MAR33 NMRF stress-scenario capital; U.S. NPR 2.0 stressed expected
     shortfall working assumptions for Type A / Type B NMRFs; EU CRR Article
@@ -149,7 +152,7 @@ class NMRFArtifactReconciliationItem:
 
     @property
     def passed(self) -> bool:
-        """Return True when this spec has exactly one matching artifact."""
+        """Return True when all reconciliation checks passed."""
         return not self.errors
 
     def as_dict(self) -> dict[str, object]:
@@ -366,6 +369,7 @@ def reconcile_nmrf_valuation_artifacts(
     specs: Sequence[NMRFValuationSpec],
     artifacts: Sequence[NMRFStressArtifact],
     *,
+    allow_prototype_artifacts: bool = False,
     run_id: str | None = None,
     desk_id: str | None = None,
     regime: str | None = None,
@@ -413,7 +417,11 @@ def reconcile_nmrf_valuation_artifacts(
         if risk_factor_name not in spec_name_set
     )
     items = tuple(
-        _reconcile_one_spec(spec, tuple(artifacts_by_name.get(spec.risk_factor_name, ())))
+        _reconcile_one_spec(
+            spec,
+            tuple(artifacts_by_name.get(spec.risk_factor_name, ())),
+            allow_prototype_artifacts=allow_prototype_artifacts,
+        )
         for spec in specs_tuple
     )
     result = NMRFArtifactReconciliationResult(
@@ -445,6 +453,7 @@ def complete_nmrf_valuation_run(
     request: NMRFValuationRunRequest,
     artifacts: Sequence[NMRFStressArtifact],
     *,
+    allow_prototype_artifacts: bool = False,
     elapsed_seconds: float | None = None,
     notes: str = "",
 ) -> NMRFValuationRunResult:
@@ -452,6 +461,7 @@ def complete_nmrf_valuation_run(
     reconciliation = reconcile_nmrf_valuation_artifacts(
         request.specs,
         artifacts,
+        allow_prototype_artifacts=allow_prototype_artifacts,
         run_id=request.run_id,
         desk_id=request.desk_id,
         regime=request.regime,
@@ -513,6 +523,8 @@ def calculate_nmrf_capital_from_valuation_run(
 def _reconcile_one_spec(
     spec: NMRFValuationSpec,
     artifacts: tuple[NMRFStressArtifact, ...],
+    *,
+    allow_prototype_artifacts: bool,
 ) -> NMRFArtifactReconciliationItem:
     required_scenario_count = _required_scenario_count(spec)
     errors: list[str] = []
@@ -552,6 +564,9 @@ def _reconcile_one_spec(
     if not source_present:
         errors.append("missing_source")
 
+    if artifact.generated_by_prototype and not allow_prototype_artifacts:
+        errors.append("prototype_artifact")
+
     scenario_count_matched = _scenario_count_matched(spec, artifact)
     if scenario_count_matched is False:
         errors.append("scenario_count_mismatch")
@@ -585,8 +600,7 @@ def _reconcile_one_spec(
 
 def _required_scenario_count(spec: NMRFValuationSpec) -> int | None:
     if spec.method == NMRFStressMethod.STEPWISE:
-        if spec.stepwise_grid is None:
-            raise NMRFValuationRunError("STEPWISE spec is missing stepwise_grid")
+        assert spec.stepwise_grid is not None
         return spec.stepwise_grid.shock_count
     required_ids = _required_scenario_ids(spec)
     if required_ids:
@@ -596,16 +610,10 @@ def _required_scenario_count(spec: NMRFValuationSpec) -> int | None:
 
 def _required_scenario_ids(spec: NMRFValuationSpec) -> tuple[str, ...]:
     if spec.method == NMRFStressMethod.FULL_REVALUATION:
-        if spec.full_revaluation is None:
-            raise NMRFValuationRunError(
-                "FULL_REVALUATION spec is missing full_revaluation"
-            )
+        assert spec.full_revaluation is not None
         return tuple(spec.full_revaluation.market_state_ids)
     if spec.method == NMRFStressMethod.MAX_LOSS_FALLBACK:
-        if spec.max_loss_fallback is None:
-            raise NMRFValuationRunError(
-                "MAX_LOSS_FALLBACK spec is missing max_loss_fallback"
-            )
+        assert spec.max_loss_fallback is not None
         return tuple(spec.max_loss_fallback.candidate_scenario_ids)
     return ()
 

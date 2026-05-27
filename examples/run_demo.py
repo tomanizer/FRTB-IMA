@@ -308,6 +308,7 @@ def main() -> None:
     valuation_run = complete_nmrf_valuation_run(
         valuation_request,
         artifacts,
+        allow_prototype_artifacts=True,
         notes="Synthetic demo valuation result.",
     )
     print(
