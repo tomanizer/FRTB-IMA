@@ -71,9 +71,9 @@ def load_capital_run_fixture(root: Path) -> CapitalRunFixture:
     scenario_cube = ScenarioCube(
         values=scenario_cube_arrays["cube"],
         scenario_metadata=scenario_metadata,
-        position_ids=tuple(str(item) for item in scenario_cube_arrays["position_ids"].tolist()),
+        position_ids=tuple(_to_str(item) for item in scenario_cube_arrays["position_ids"].tolist()),
         risk_factor_names=tuple(
-            str(item) for item in scenario_cube_arrays["risk_factor_names"].tolist()
+            _to_str(item) for item in scenario_cube_arrays["risk_factor_names"].tolist()
         ),
         name="capital_run_v1_current",
     )
@@ -109,13 +109,13 @@ def as_of_date_from_fixture(fixture: CapitalRunFixture) -> date:
 def observation_dates_from_fixture(fixture: CapitalRunFixture) -> tuple[date, ...]:
     """Return aligned PLA/backtesting observation dates from the fixture."""
     return tuple(
-        date.fromisoformat(str(value))
+        date.fromisoformat(_to_str(value))
         for value in fixture.pla_bt_vectors["observation_dates"].tolist()
     )
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
         raise AssertionError(f"{path} must contain a JSON object")
     return data
@@ -132,6 +132,7 @@ def _load_npz(path: Path) -> dict[str, npt.NDArray[Any]]:
 
 
 def _verify_manifest_checksums(root: Path, manifest: dict[str, Any]) -> None:
+    resolved_root = root.resolve()
     files = manifest.get("files")
     if not isinstance(files, dict) or not files:
         raise AssertionError("manifest must contain file checksums")
@@ -141,7 +142,10 @@ def _verify_manifest_checksums(root: Path, manifest: dict[str, Any]) -> None:
         expected = metadata.get("sha256")
         if not isinstance(expected, str):
             raise AssertionError(f"manifest checksum missing for {filename}")
-        actual = _sha256(root / filename)
+        target_path = (resolved_root / filename).resolve()
+        if not target_path.is_relative_to(resolved_root):
+            raise AssertionError(f"manifest file path escapes fixture root: {filename}")
+        actual = _sha256(target_path)
         if actual != expected:
             raise AssertionError(
                 f"manifest checksum mismatch for {filename}: expected {expected}, actual {actual}"
@@ -242,11 +246,12 @@ def _load_stress_histories(
                 risk_class=risk_class,
                 losses=arrays[f"{prefix}_losses"],
                 dates=tuple(
-                    date.fromisoformat(str(value)) for value in arrays[f"{prefix}_dates"].tolist()
+                    date.fromisoformat(_to_str(value))
+                    for value in arrays[f"{prefix}_dates"].tolist()
                 ),
                 source=row["source"],
                 scenario_ids=tuple(
-                    str(value) for value in arrays[f"{prefix}_scenario_ids"].tolist()
+                    _to_str(value) for value in arrays[f"{prefix}_scenario_ids"].tolist()
                 ),
                 name=f"{prefix} fixture stress history",
             )
@@ -255,7 +260,7 @@ def _load_stress_histories(
 
 
 def _read_csv(path: Path) -> list[dict[str, str]]:
-    with path.open(newline="") as handle:
+    with path.open(newline="", encoding="utf-8") as handle:
         return [dict(row) for row in csv.DictReader(handle)]
 
 
@@ -265,3 +270,9 @@ def _parse_bool(value: str) -> bool:
     if value == "false":
         return False
     raise AssertionError(f"invalid boolean value: {value}")
+
+
+def _to_str(value: Any) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    return str(value)
