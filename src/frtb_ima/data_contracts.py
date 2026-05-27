@@ -192,7 +192,9 @@ class ScenarioCube:
         if len(risk_factor_names) != risk_factor_count:
             raise ValueError("risk_factor_names length must match ScenarioCube risk-factor axis")
 
-        object.__setattr__(self, "values", arr.astype(np.float64, copy=False))
+        frozen_values = arr.copy() if arr.flags.writeable else arr
+        frozen_values.flags.writeable = False
+        object.__setattr__(self, "values", frozen_values)
         object.__setattr__(self, "scenario_metadata", scenario_metadata)
         object.__setattr__(self, "position_ids", position_ids)
         object.__setattr__(self, "risk_factor_names", risk_factor_names)

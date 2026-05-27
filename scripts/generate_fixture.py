@@ -288,6 +288,7 @@ def _scenario_cube(rng: np.random.Generator) -> ScenarioCube:
             + tail
         )
 
+    values.flags.writeable = False
     return ScenarioCube(
         values=values,
         scenario_metadata=metadata,
@@ -307,6 +308,7 @@ def _stress_histories(rng: np.random.Generator) -> tuple[HistoricalStressSeries,
         severe_window = slice(start, start + 250)
         losses[severe_window] += 1_550.0 + index * 260.0
         losses[start + 210 : start + 250] += np.linspace(100.0, 780.0 + index * 70.0, 40)
+        losses.flags.writeable = False
         scenario_ids = tuple(
             f"{risk_class.value.lower()}-stress-{idx:05d}" for idx in range(len(dates))
         )
@@ -694,8 +696,10 @@ def _filtered_cube(cube: ScenarioCube, risk_factor_names: Sequence[str]) -> Scen
     allowed = set(risk_factor_names)
     selected = tuple(name for name in cube.risk_factor_names if name in allowed)
     indices = [cube.risk_factor_index[name] for name in selected]
+    values = cube.values[:, :, indices].copy()
+    values.flags.writeable = False
     return ScenarioCube(
-        values=cube.values[:, :, indices],
+        values=values,
         scenario_metadata=cube.scenario_metadata,
         position_ids=cube.position_ids,
         risk_factor_names=selected,

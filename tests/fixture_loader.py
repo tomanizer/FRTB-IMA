@@ -91,7 +91,12 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _load_npz(path: Path) -> dict[str, npt.NDArray[Any]]:
     with np.load(path, allow_pickle=False) as data:
-        return {name: data[name].copy() for name in data.files}
+        result: dict[str, npt.NDArray[Any]] = {}
+        for name in data.files:
+            arr = data[name].copy()
+            arr.flags.writeable = False
+            result[name] = arr
+        return result
 
 
 def _verify_manifest_checksums(root: Path, manifest: dict[str, Any]) -> None:

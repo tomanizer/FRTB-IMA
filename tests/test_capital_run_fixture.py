@@ -77,6 +77,9 @@ def test_capital_run_v1_manifest_declares_sign_conventions() -> None:
     assert conventions["nmrf_artifacts.npz"]["*_losses"] == "positive_loss"
     assert conventions["pla_bt_vectors.npz"]["apl"] == "positive_profit"
     assert conventions["pla_bt_vectors.npz"]["var_99"] == "positive_magnitude"
+    assert not fixture.scenario_cube.values.flags.writeable
+    assert not fixture.nmrf_artifacts["HY_CREDIT_SPD_losses"].flags.writeable
+    assert not fixture.pla_bt_vectors["apl"].flags.writeable
 
 
 def _run_fixture_workflow(fixture: CapitalRunFixture) -> dict[str, object]:
@@ -350,8 +353,10 @@ def _filtered_cube(cube: ScenarioCube, risk_factor_names: Sequence[str]) -> Scen
     allowed = set(risk_factor_names)
     selected = tuple(name for name in cube.risk_factor_names if name in allowed)
     indices = [cube.risk_factor_index[name] for name in selected]
+    values = cube.values[:, :, indices].copy()
+    values.flags.writeable = False
     return ScenarioCube(
-        values=cube.values[:, :, indices],
+        values=values,
         scenario_metadata=cube.scenario_metadata,
         position_ids=cube.position_ids,
         risk_factor_names=selected,
