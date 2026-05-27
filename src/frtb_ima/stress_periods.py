@@ -597,7 +597,9 @@ def _as_finite_loss_array(
         raise ValueError(f"{name} must be non-empty")
     if not np.all(np.isfinite(arr)):
         raise ValueError(f"{name} must contain only finite values")
-    return arr.astype(np.float64, copy=False)
+    copied = arr.astype(np.float64, copy=True)
+    copied.flags.writeable = False
+    return copied
 
 
 def _as_strictly_increasing_dates(values: Sequence[date]) -> tuple[date, ...]:

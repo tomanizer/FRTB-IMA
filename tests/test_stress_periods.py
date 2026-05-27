@@ -133,6 +133,18 @@ def test_candidates_from_history_materialises_audit_windows_without_losses() -> 
     assert "losses" not in candidates[0].as_dict()
 
 
+def test_historical_stress_series_defensively_freezes_loss_vector() -> None:
+    original_losses = np.array([1.0, 2.0, 3.0, 4.0])
+    series = _series(original_losses)
+
+    original_losses[0] = 100.0
+
+    assert series.losses[0] == pytest.approx(1.0)
+    assert series.losses.flags.writeable is False
+    with pytest.raises(ValueError, match="read-only"):
+        series.losses[0] = 200.0
+
+
 def test_select_stress_periods_by_risk_class_selects_independently() -> None:
     csr_losses = np.zeros(10)
     csr_losses[2:5] = [10.0, 20.0, 30.0]
