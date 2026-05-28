@@ -34,6 +34,7 @@ class DeskAuditRecord:
     run_id: str
     desk_id: str
     regime: str
+    desk_eligibility: str = field(default="IMA_ELIGIBLE", kw_only=True)
     imcc: Mapping[str, object]
     ses: Mapping[str, object]
     pla: Mapping[str, object]
@@ -52,6 +53,8 @@ class DeskAuditRecord:
             raise ValueError("desk_id must be non-empty")
         if not self.regime:
             raise ValueError("regime must be non-empty")
+        if not self.desk_eligibility:
+            raise ValueError("desk_eligibility must be non-empty")
         if self.elapsed_seconds < 0.0:
             raise ValueError("elapsed_seconds must be non-negative")
         object.__setattr__(self, "imcc", _freeze_mapping(self.imcc))
@@ -73,6 +76,7 @@ class DeskAuditRecord:
             "run_id": self.run_id,
             "desk_id": self.desk_id,
             "regime": self.regime,
+            "desk_eligibility": self.desk_eligibility,
             "as_of_date": self.as_of_date.isoformat() if self.as_of_date is not None else None,
             "imcc": _jsonable(self.imcc),
             "ses": _jsonable(self.ses),

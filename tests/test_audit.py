@@ -41,6 +41,7 @@ def test_desk_audit_record_serializes_to_json_line() -> None:
 
     assert payload["run_id"] == "run-1"
     assert payload["desk_id"] == "desk-1"
+    assert payload["desk_eligibility"] == "IMA_ELIGIBLE"
     assert payload["as_of_date"] == "2026-05-27"
     assert payload["imcc"]["imcc"] == pytest.approx(100.0)
     assert payload["nmrf_valuation"]["passed"] is True
