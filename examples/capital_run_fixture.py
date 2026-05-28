@@ -250,7 +250,7 @@ def nmrf_artifacts_from_fixture(
                 stress_period=spec.stress_period.stress_period_id,
                 source=NMRF_ARTIFACT_SOURCE,
                 scenario_ids=tuple(
-                    str(item)
+                    _to_str(item)
                     for item in fixture.nmrf_artifacts[f"{risk_factor_name}_scenario_ids"].tolist()
                 ),
                 generated_by_prototype=False,
