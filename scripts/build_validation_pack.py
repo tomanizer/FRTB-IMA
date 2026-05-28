@@ -133,14 +133,7 @@ def main() -> None:
         generated_artifacts=(),
     )
     _write_readme(readme_path, pack)
-    pack = _pack_manifest(
-        fixture_root=fixture_root,
-        notebook_root=notebook_root,
-        fixture_manifest=manifest,
-        params=params,
-        expected=expected,
-        generated_artifacts=_artifact_entries((readme_path, *audit_artifacts)),
-    )
+    pack["generated_artifacts"] = _artifact_entries((readme_path, *audit_artifacts))
     _write_json(output / "validation_pack_manifest.json", pack)
 
 
@@ -283,9 +276,7 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 
 def _rooted(path: Path) -> Path:
-    if path.is_absolute():
-        return path
-    return ROOT / path
+    return path.resolve()
 
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:
