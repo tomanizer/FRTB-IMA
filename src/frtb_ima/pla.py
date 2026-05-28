@@ -388,15 +388,24 @@ def pla_assessment_for_policy(
     Run PLA using policy thresholds and required metrics.
 
     FED NPR 2.0 uses KS only. ECB/PRA profiles compute both KS and Spearman;
-    PlaPolicyAssessmentResult.zone reports the worse joint zone.
+    the returned compatibility PlaResult carries the authoritative policy zone.
+    Use pla_assessment_for_policy_with_diagnostics for the full decomposition.
     """
-    return pla_assessment_for_policy_with_diagnostics(
+    result = pla_assessment_for_policy_with_diagnostics(
         hpl,
         rtpl,
         policy,
         run_id=run_id,
         desk_id=desk_id,
-    ).pla
+    )
+    if result.spearman is None:
+        return result.pla
+    return PlaResult(
+        ks_statistic=result.pla.ks_statistic,
+        zone=result.zone,
+        n_hpl=result.pla.n_hpl,
+        n_rtpl=result.pla.n_rtpl,
+    )
 
 
 def pla_assessment_for_policy_with_diagnostics(

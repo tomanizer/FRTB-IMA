@@ -319,6 +319,17 @@ def test_pla_policy_joint_zone_uses_custom_zone_labels() -> None:
     assert result.zone == "FAIL"
 
 
+def test_pla_assessment_for_policy_returns_authoritative_joint_zone() -> None:
+    policy = get_policy(RegulatoryRegime.ECB_CRR3)
+    hpl = [float(idx) for idx in range(250)]
+    rtpl = [float(idx) for idx in range(249, -1, -1)]
+
+    result = pla_assessment_for_policy(hpl, rtpl, policy)
+
+    assert result.ks_statistic == pytest.approx(0.0)
+    assert result.zone == "RED"
+
+
 def test_pla_fed_policy_spearman_is_none() -> None:
     policy = get_policy(RegulatoryRegime.FED_NPR_2_0)
     hpl = [float(idx) for idx in range(250)]
