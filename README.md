@@ -1,5 +1,13 @@
 # FRTB-IMA
 
+> 📦 **This repository has been migrated.** Active development continues in [`tomanizer/frtb-capital`](https://github.com/tomanizer/frtb-capital) as the `packages/frtb-ima/` package within the FRTB market-risk capital suite. The full git history is preserved in the new location.
+>
+> Open issues have been transferred. Please file new issues in the [`frtb-capital`](https://github.com/tomanizer/frtb-capital/issues) repository.
+>
+> This repository is retained for historical reference. The `main` branch reflects the state at the point of migration (commit `7f704e7`).
+
+---
+
 **Prototype NPR 2.0-style FRTB IMA capital calculator.**
 
 > ⚠️ Prototype only. Not for regulatory reporting. All regulatory statements are working assumptions based on the March 2026 U.S. NPR 2.0 proposal and Basel FRTB IMA concepts.
