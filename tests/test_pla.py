@@ -16,7 +16,7 @@ from frtb_ima.pla import (
     spearman_correlation,
     spearman_pla_assessment,
 )
-from frtb_ima.regimes import RegulatoryRegime, get_policy
+from frtb_ima.regimes import PLAMetricsRequired, RegulatoryPolicy, RegulatoryRegime, get_policy
 
 
 def _diagnostics() -> PlaWindowDiagnostics:
@@ -116,6 +116,11 @@ def test_spearman_correlation_rejects_non_finite() -> None:
         spearman_correlation([1.0, float("nan")], [1.0, 2.0])
 
 
+def test_spearman_correlation_rejects_string_input() -> None:
+    with pytest.raises(ValueError, match="sequence or numpy array"):
+        spearman_correlation("not-a-vector", [1.0, 2.0])  # type: ignore[arg-type]
+
+
 def test_pla_assessment_green_zone() -> None:
     vec = [float(i) for i in range(200)]
     result = pla_assessment(vec, vec)
@@ -177,6 +182,27 @@ def test_spearman_pla_assessment_rejects_invalid_thresholds() -> None:
             [1.0, 2.0],
             green_threshold=0.5,
             amber_threshold=0.8,
+        )
+
+
+def test_spearman_pla_assessment_rejects_non_numeric_threshold() -> None:
+    with pytest.raises(ValueError, match="green_threshold"):
+        spearman_pla_assessment(
+            [1.0, 2.0],
+            [1.0, 2.0],
+            green_threshold="0.8",  # type: ignore[arg-type]
+            amber_threshold=0.7,
+        )
+
+
+def test_spearman_pla_assessment_rejects_invalid_zone_labels() -> None:
+    with pytest.raises(ValueError, match="zone_labels"):
+        spearman_pla_assessment(
+            [1.0, 2.0],
+            [1.0, 2.0],
+            green_threshold=0.8,
+            amber_threshold=0.7,
+            zone_labels=("GREEN", "GREEN", "RED"),
         )
 
 
@@ -274,6 +300,23 @@ def test_pla_ecb_policy_joint_zone_propagates() -> None:
 
     assert result.spearman is not None
     assert result.zone == _worse_test_zone(result.pla.zone, result.spearman.zone)
+
+
+def test_pla_policy_joint_zone_uses_custom_zone_labels() -> None:
+    policy = RegulatoryPolicy(
+        regime=RegulatoryRegime.ECB_CRR3,
+        pla_metrics_required=PLAMetricsRequired.KS_AND_SPEARMAN,
+        pla_zone_labels=("PASS", "WATCH", "FAIL"),
+    )
+    hpl = [float(idx) for idx in range(250)]
+    rtpl = [float(idx) for idx in range(249, -1, -1)]
+
+    result = pla_assessment_for_policy_with_diagnostics(hpl, rtpl, policy)
+
+    assert result.pla.zone == "PASS"
+    assert result.spearman is not None
+    assert result.spearman.zone == "FAIL"
+    assert result.zone == "FAIL"
 
 
 def test_pla_fed_policy_spearman_is_none() -> None:

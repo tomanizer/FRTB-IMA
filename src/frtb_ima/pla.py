@@ -27,6 +27,7 @@ Regulatory traceability:
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -113,6 +114,7 @@ class PlaPolicyAssessmentResult:
     pla: PlaResult
     diagnostics: PlaWindowDiagnostics
     spearman: SpearmanPlaResult | None = None
+    zone_labels: tuple[str, str, str] = DEFAULT_ZONE_LABELS
 
     @property
     def ks_statistic(self) -> float:
@@ -124,9 +126,7 @@ class PlaPolicyAssessmentResult:
         """Policy PLA zone label."""
         if self.spearman is None:
             return self.pla.zone
-        # Zone labels are protocol constants here. If policy.pla_zone_labels
-        # diverges from these constants, joint-zone resolution must be revisited.
-        return _worse_zone(self.pla.zone, self.spearman.zone, ("GREEN", "AMBER", "RED"))
+        return _worse_zone(self.pla.zone, self.spearman.zone, self.zone_labels)
 
     def as_dict(self) -> dict[str, object]:
         """Return a serialisable dictionary for reporting and notebooks."""
@@ -141,6 +141,7 @@ FloatVector = Sequence[float] | npt.NDArray[np.float64]
 
 
 def _as_finite_1d_array(values: FloatVector, name: str) -> npt.NDArray[np.float64]:
+    _validate_float_vector_input(values, name)
     arr = np.asarray(values, dtype=float)
     if arr.ndim != 1:
         raise ValueError(f"{name} vector must be one-dimensional")
@@ -149,6 +150,35 @@ def _as_finite_1d_array(values: FloatVector, name: str) -> npt.NDArray[np.float6
     if not np.all(np.isfinite(arr)):
         raise ValueError(f"{name} vector must contain only finite values")
     return arr.astype(np.float64, copy=False)
+
+
+def _validate_float_vector_input(values: object, name: str) -> None:
+    if values is None or isinstance(values, (str, bytes)):
+        raise ValueError(f"{name} must be a sequence or numpy array of floats")
+    if not isinstance(values, (Sequence, np.ndarray)):
+        raise ValueError(f"{name} must be a sequence or numpy array of floats")
+
+
+def _validate_unit_threshold(value: float, name: str) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ValueError(f"{name} must be a float or int")
+    threshold = float(value)
+    if not math.isfinite(threshold):
+        raise ValueError(f"{name} must be finite")
+    return threshold
+
+
+def _validate_zone_labels(zone_labels: Sequence[str]) -> tuple[str, str, str]:
+    if isinstance(zone_labels, (str, bytes)) or not isinstance(zone_labels, Sequence):
+        raise ValueError("zone_labels must be a tuple of three strings")
+    labels = tuple(zone_labels)
+    if len(labels) != 3:
+        raise ValueError("zone_labels must be a tuple of three strings")
+    if any(not isinstance(label, str) or not label for label in labels):
+        raise ValueError("zone_labels must be a tuple of three strings")
+    if len(set(labels)) != len(labels):
+        raise ValueError("zone_labels must contain distinct labels")
+    return labels[0], labels[1], labels[2]
 
 
 def _validate_observation_dates(
@@ -269,10 +299,12 @@ def pla_assessment(
     Returns:
         PlaResult with ks_statistic, zone, and vector lengths.
     """
+    green_threshold = _validate_unit_threshold(green_threshold, "green_threshold")
+    amber_threshold = _validate_unit_threshold(amber_threshold, "amber_threshold")
     if not (0.0 <= green_threshold <= amber_threshold <= 1.0):
         raise ValueError("PLA thresholds must satisfy 0 <= green_threshold <= amber_threshold <= 1")
 
-    green_label, amber_label, red_label = zone_labels
+    green_label, amber_label, red_label = _validate_zone_labels(zone_labels)
     hpl_arr = _as_finite_1d_array(hpl, "hpl")
     rtpl_arr = _as_finite_1d_array(rtpl, "rtpl")
     ks = _ks_statistic_arrays(np.sort(hpl_arr), np.sort(rtpl_arr))
@@ -307,12 +339,14 @@ def spearman_pla_assessment(
         rho >= amber_threshold -> AMBER
         otherwise -> RED
     """
+    green_threshold = _validate_unit_threshold(green_threshold, "green_threshold")
+    amber_threshold = _validate_unit_threshold(amber_threshold, "amber_threshold")
+    green_label, amber_label, red_label = _validate_zone_labels(zone_labels)
     if not (0.0 <= amber_threshold <= green_threshold <= 1.0):
         raise ValueError(
             "Spearman PLA thresholds must satisfy 0 <= amber_threshold <= green_threshold <= 1"
         )
 
-    green_label, amber_label, red_label = zone_labels
     hpl_arr = _as_finite_1d_array(hpl, "hpl")
     rtpl_arr = _as_finite_1d_array(rtpl, "rtpl")
     rho = spearman_correlation(hpl_arr, rtpl_arr)
@@ -333,12 +367,8 @@ def spearman_pla_assessment(
 
 
 def _worse_zone(zone1: str, zone2: str, zone_labels: Sequence[str]) -> str:
-    labels = tuple(zone_labels)
-    if len(labels) != 3:
-        raise ValueError("zone_labels must contain exactly three labels")
+    labels = _validate_zone_labels(zone_labels)
     severity = {label: idx for idx, label in enumerate(labels)}
-    if len(severity) != len(labels):
-        raise ValueError("zone_labels must contain distinct labels")
     if zone1 not in severity:
         raise ValueError(f"zone1 must be one of {', '.join(labels)}, got {zone1!r}")
     if zone2 not in severity:
@@ -439,6 +469,7 @@ def pla_assessment_for_policy_with_diagnostics(
             end_date=dates_w[-1] if dates_w else None,
         ),
         spearman=spearman_result,
+        zone_labels=policy.pla_zone_labels,
     )
     log_fields = calculation_log_extra(
         run_id=run_id,
