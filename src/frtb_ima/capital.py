@@ -37,7 +37,7 @@ from frtb_ima.regimes import (
     RegulatoryPolicy,
 )
 
-VALID_PLA_ZONES = frozenset(("GREEN", "AMBER", "RED"))
+DEFAULT_PLA_ZONE_LABELS: tuple[str, str, str] = ("GREEN", "AMBER", "RED")
 logger = logging.getLogger(__name__)
 
 
@@ -100,6 +100,20 @@ def _validate_non_negative_finite(value: float, name: str) -> None:
         raise ValueError(f"{name} must be finite, got {value}")
     if value < 0.0:
         raise ValueError(f"{name} must be non-negative, got {value}")
+
+
+def _validate_pla_zone_labels(zone_labels: Sequence[str]) -> tuple[str, str, str]:
+    try:
+        labels = tuple(zone_labels)
+    except TypeError as exc:
+        raise ValueError("pla_zone_labels must be a sequence of three labels") from exc
+    if len(labels) != 3:
+        raise ValueError("pla_zone_labels must contain exactly three labels")
+    if any(not isinstance(label, str) or not label for label in labels):
+        raise ValueError("pla_zone_labels must contain non-empty string labels")
+    if len(set(labels)) != len(labels):
+        raise ValueError("pla_zone_labels must contain distinct labels")
+    return labels[0], labels[1], labels[2]
 
 
 def models_based_capital(
@@ -167,13 +181,23 @@ def models_based_capital(
 def desk_eligibility_from_results(
     backtest_result: TradingDeskBacktestResult,
     pla_zone: str,
+    *,
+    pla_zone_labels: Sequence[str] = DEFAULT_PLA_ZONE_LABELS,
 ) -> DeskEligibilityStatus:
-    """Return IMA eligibility from trailing backtesting and PLA assessment results."""
+    """Return IMA eligibility from trailing backtesting and PLA assessment results.
+
+    ``pla_zone_labels`` follows the same green, amber, red ordering used by
+    ``RegulatoryPolicy.pla_zone_labels``.
+    """
     if not isinstance(backtest_result, TradingDeskBacktestResult):
         raise ValueError("backtest_result must be a TradingDeskBacktestResult")
-    if pla_zone not in VALID_PLA_ZONES:
-        raise ValueError(f"pla_zone must be one of GREEN, AMBER, RED, got {pla_zone!r}")
-    if not backtest_result.model_eligible or pla_zone == "RED":
+    if not isinstance(pla_zone, str) or not pla_zone:
+        raise ValueError("pla_zone must be a non-empty string")
+    green_label, amber_label, red_label = _validate_pla_zone_labels(pla_zone_labels)
+    if pla_zone not in (green_label, amber_label, red_label):
+        expected = ", ".join((green_label, amber_label, red_label))
+        raise ValueError(f"pla_zone must be one of {expected}, got {pla_zone!r}")
+    if not backtest_result.model_eligible or pla_zone == red_label:
         return DeskEligibilityStatus.SA_FALLBACK
     return DeskEligibilityStatus.IMA_ELIGIBLE
 

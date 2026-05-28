@@ -148,11 +148,38 @@ def test_desk_eligibility_from_results_allows_amber_pla_when_backtesting_passes(
     assert result == DeskEligibilityStatus.IMA_ELIGIBLE
 
 
+def test_desk_eligibility_from_results_uses_configured_pla_zone_labels() -> None:
+    passing_backtest = _trading_desk_backtest_result(model_eligible=True)
+
+    amber_result = desk_eligibility_from_results(
+        passing_backtest,
+        "WATCH",
+        pla_zone_labels=("OK", "WATCH", "FAIL"),
+    )
+    red_result = desk_eligibility_from_results(
+        passing_backtest,
+        "FAIL",
+        pla_zone_labels=("OK", "WATCH", "FAIL"),
+    )
+
+    assert amber_result == DeskEligibilityStatus.IMA_ELIGIBLE
+    assert red_result == DeskEligibilityStatus.SA_FALLBACK
+
+
 def test_desk_eligibility_from_results_rejects_unknown_pla_zone() -> None:
     with pytest.raises(ValueError, match="pla_zone"):
         desk_eligibility_from_results(
             _trading_desk_backtest_result(model_eligible=True),
             "YELLOW",
+        )
+
+
+def test_desk_eligibility_from_results_rejects_invalid_pla_zone_labels() -> None:
+    with pytest.raises(ValueError, match="pla_zone_labels"):
+        desk_eligibility_from_results(
+            _trading_desk_backtest_result(model_eligible=True),
+            "GREEN",
+            pla_zone_labels=("GREEN", "GREEN", "RED"),
         )
 
 
